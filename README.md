@@ -1,6 +1,6 @@
 # Consulting Bid Register
 
-Static bid register for Cities Forum and Katha Media. No build step: the site is `index.html`.
+Static bid register for Cities Forum. It also carries opportunities screened for Katha Media. No build step: the site is `index.html`.
 
 - `index.html`: the register page. The data inside it is encrypted; the page asks for a Cities Forum email address and the shared password, then decrypts in the browser.
 - There is deliberately no plain data file in this repository. Do not add one: anything here is served publicly by the host.
