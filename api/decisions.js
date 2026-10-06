@@ -34,7 +34,10 @@ async function read(pathname) {
 
 module.exports = async (req, res) => {
   const out = (code, body) => { res.setHeader("Cache-Control", "no-store"); return res.status(code).json(body); };
-  if (!process.env.BLOB_READ_WRITE_TOKEN) return out(503, { error: "Decision emails are not switched on yet: the site has no storage connected." });
+  // A connected store provides either BLOB_READ_WRITE_TOKEN or BLOB_STORE_ID (token-less access); names may carry a custom prefix.
+  const blobVars = Object.keys(process.env).filter((k) => /BLOB/.test(k));
+  if (!process.env.BLOB_READ_WRITE_TOKEN && !process.env.BLOB_STORE_ID)
+    return out(503, { error: "Decision emails are not switched on yet: the site has no storage connected.", storage_settings_seen: blobVars });
   try {
     if (req.method === "GET") {
       const q = req.query || {};
@@ -80,6 +83,6 @@ module.exports = async (req, res) => {
     await save("outbox/" + Date.now() + ".json", JSON.stringify(item));
     return out(200, { ok: true, queued: true, to });
   } catch (e) {
-    return out(502, { error: "The site's storage refused the request (" + clean(e && (e.name || e.message), 100) + ")." });
+    return out(502, { error: "The site's storage refused the request (" + clean(e && e.name, 60) + ": " + clean(e && e.message, 200) + ").", storage_settings_seen: blobVars });
   }
 };
