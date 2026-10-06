@@ -14,14 +14,9 @@ The email check only tests the address format; it does not prove who the visitor
 
 ## Decision emails
 
-`api/send-decision.js` is a Vercel function. When someone presses "Save and email decision" it sends the decision to the addresses they entered. It needs these environment variables in the Vercel project (Settings, Environment Variables), then a redeploy:
+`api/decisions.js` is a Vercel function. When someone presses "Save and email decision", it stores the decision in an outbox. A scheduled Claude task reads the outbox each hour (08:00 to 20:00 UAE), sends each decision from business@citiesforum.org, and clears what it sent.
 
-| Variable | Value |
-|---|---|
-| `REGISTER_PASSWORD` | the register password, exactly as people type it |
-| `SMTP_USER` | the mailbox that sends, e.g. a Cities Forum Google Workspace address |
-| `SMTP_PASS` | an app password for that mailbox (not its normal password) |
-| `ALLOWED_DOMAINS` | optional, comma-separated; default `citiesforum.org`. Only these domains may sign in and receive |
-| `SMTP_HOST`, `SMTP_PORT`, `MAIL_FROM` | optional; default to Gmail (`smtp.gmail.com`, 465) and `SMTP_USER` |
+Setup, once: connect a Vercel Blob store to this project (Storage in the Vercel project) and redeploy. That adds `BLOB_READ_WRITE_TOKEN` automatically; no other setting is needed.
 
-The function refuses requests without the register password and refuses recipients outside the allowed domains, so it cannot be used to send mail elsewhere. Never commit these values.
+- Requests must carry the register password. `api/_auth.json` holds a salted hash of it; regenerate that file if the password changes.
+- Sign-in and recipient addresses must be in the allowed domains (`citiesforum.org` by default; override with the `ALLOWED_DOMAINS` environment variable, comma-separated).

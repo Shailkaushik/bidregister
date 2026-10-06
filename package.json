@@ -3,5 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "description": "Cities Forum consulting bid register (static page plus one email function)",
-  "dependencies": { "nodemailer": "^6.9.14" }
+  "dependencies": {
+    "@vercel/blob": "^2.8.0"
+  }
 }
