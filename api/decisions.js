@@ -5,9 +5,12 @@
 // GET  /api/decisions?key=PASSWORD         list queued emails (read by the Claude task that sends them)
 // GET  /api/decisions?key=PASSWORD&ack=a,b remove queued emails after they were sent
 //
-// Emails are sent later from business@citiesforum.org by a scheduled Claude task, not by this function.
+// Sending: if SMTP_USER and SMTP_PASS are set in the Vercel project (optional SMTP_HOST, SMTP_PORT, MAIL_FROM;
+// defaults are Gmail), the decision email is sent at once from that mailbox. If they are not set, or the mail
+// server refuses, the decision is queued in the Blob store and a scheduled Claude task sends it within the hour.
 const crypto = require("crypto");
 const { put, list, get, del } = require("@vercel/blob");
+const nodemailer = require("nodemailer");
 const AUTH = require("./_auth.json"); // salted PBKDF2 hash of the register password, written by the build
 
 const DOMAINS = (process.env.ALLOWED_DOMAINS || AUTH.domains || "citiesforum.org").toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
@@ -32,16 +35,47 @@ async function read(pathname) {
   return null;
 }
 
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+async function sendNow(item) {
+  const env = process.env, d = item.decision, o = item.opportunity;
+  const rows = [["Decision", d.bid_decision || "Unassigned"], ["Internal owner", d.internal_owner || "Unassigned"], ["Next action", d.next_action_internal || "Not set"],
+    ["Internal target date", d.internal_target_date || "Not set"], ["Notes", d.user_notes || "None"], ["Opportunity", o.title], ["Client", o.client], ["Country", o.country],
+    ["Reference", o.reference], ["Type", o.opportunity_type], ["Deadline as published", o.deadline_original], ["UAE time", o.deadline_uae],
+    ["Recommended bidder", o.recommended_bidder], ["Priority", o.priority], ["Eligibility", o.eligibility_status], ["Official notice", o.notice || "Not verified"], ["Recorded by", item.recorded_by]];
+  const subject = "Bid decision: " + rows[0][1] + " | " + clean(o.title, 90);
+  const text = "Bid decision recorded in the Cities Forum Consulting Bid Register.\n\n" + rows.map((r) => r[0] + ": " + r[1]).join("\n");
+  const cell = (r) => r[0] === "Official notice" && /^https?:\/\//.test(r[1]) ? '<a href="' + esc(r[1]) + '">' + esc(r[1]) + "</a>" : esc(r[1]).replace(/\n/g, "<br>");
+  const html = '<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#231F20;max-width:640px">' +
+    '<div style="background:#067264;color:#fff;padding:14px 18px;font-size:17px;font-weight:bold">Bid decision: ' + esc(rows[0][1]) + "</div>" +
+    '<table cellpadding="7" cellspacing="0" style="border-collapse:collapse;width:100%;border:1px solid #D8E3E0">' +
+    rows.map((r) => '<tr><td style="border-top:1px solid #D8E3E0;width:34%;font-weight:bold;color:#6D6E71;vertical-align:top">' + esc(r[0]) + '</td><td style="border-top:1px solid #D8E3E0;vertical-align:top">' + cell(r) + "</td></tr>").join("") +
+    '</table><p style="color:#6D6E71;font-size:12px">Sent from the Cities Forum Consulting Bid Register.</p></div>';
+  const port = Number(env.SMTP_PORT || 465);
+  const tx = nodemailer.createTransport({ host: env.SMTP_HOST || "smtp.gmail.com", port, secure: port === 465, auth: { user: env.SMTP_USER, pass: String(env.SMTP_PASS).replace(/\s+/g, "") } });
+  return tx.sendMail({ from: '"Cities Forum Bid Register" <' + (env.MAIL_FROM || env.SMTP_USER) + ">", to: item.to, replyTo: item.recorded_by, subject, text, html });
+}
+
 module.exports = async (req, res) => {
   const out = (code, body) => { res.setHeader("Cache-Control", "no-store"); return res.status(code).json(body); };
   // A connected store provides either BLOB_READ_WRITE_TOKEN or BLOB_STORE_ID (token-less access); names may carry a custom prefix.
   const blobVars = Object.keys(process.env).filter((k) => /BLOB/.test(k));
-  if (!process.env.BLOB_READ_WRITE_TOKEN && !process.env.BLOB_STORE_ID)
-    return out(503, { error: "Decision emails are not switched on yet: the site has no storage connected.", storage_settings_seen: blobVars });
+  const hasStore = !!(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
+  const hasMail = !!(process.env.SMTP_USER && process.env.SMTP_PASS);
+  if (!hasStore && !(hasMail && req.method === "POST"))
+    return out(503, { error: "Decision emails are not switched on yet: the site has no mail settings and no storage connected.", storage_settings_seen: blobVars });
   try {
     if (req.method === "GET") {
       const q = req.query || {};
       if (!okPassword(q.key)) return out(401, { error: "Not authorised." });
+      if (q.check === "mail") { // sign in to the mail server without sending anything
+        if (!hasMail) return out(200, { ok: true, mail: "not configured", storage: hasStore });
+        try {
+          const port = Number(process.env.SMTP_PORT || 465);
+          await nodemailer.createTransport({ host: process.env.SMTP_HOST || "smtp.gmail.com", port, secure: port === 465, auth: { user: process.env.SMTP_USER, pass: String(process.env.SMTP_PASS).replace(/\s+/g, "") } }).verify();
+          return out(200, { ok: true, mail: "login accepted", sender: process.env.SMTP_USER, storage: hasStore });
+        } catch (e) { return out(200, { ok: true, mail: "login refused", sender: process.env.SMTP_USER, reason: clean(e && (e.code || e.message), 60) + (e && e.response ? ": " + clean(e.response, 200) : ""), storage: hasStore }); }
+      }
+      if (!hasStore) return out(200, { ok: true, count: 0, more: false, items: [] });
       const found = (await list({ prefix: "outbox/", limit: 200 })).blobs;
       if (q.ack) {
         const names = String(q.ack).split(",").map((s) => s.trim()).filter(Boolean);
@@ -67,8 +101,6 @@ module.exports = async (req, res) => {
     if (!to.length || to.length > 10) return out(400, { error: "Give between 1 and 10 recipient addresses." });
     const bad = to.find((a) => !okAddr(a) || !inDomain(a));
     if (bad) return out(400, { error: "Recipient not allowed: " + bad + ". Decisions can be sent to " + DOMAINS.map((d) => "@" + d).join(", ") + " addresses only." });
-    const pending = (await list({ prefix: "outbox/", limit: 200 })).blobs.length;
-    if (pending >= 150) return out(429, { error: "Too many decision emails are waiting to be sent. Try again later." });
     const d = b.decision || {}, o = b.opportunity || {};
     const item = {
       queued_at: new Date().toISOString(), recorded_by: from, to,
@@ -80,8 +112,16 @@ module.exports = async (req, res) => {
         recommended_bidder: clean(o.recommended_bidder, 80), priority: clean(o.priority, 20), eligibility_status: clean(o.eligibility_status, 40),
         notice: /^https?:\/\//.test(String(o.notice || "")) ? clean(o.notice, 400) : "" },
     };
+    let mailError = "";
+    if (hasMail) {
+      try { const info = await sendNow(item); return out(200, { ok: true, sent: true, to, id: (info && info.messageId) || "" }); }
+      catch (e) { mailError = clean(e && (e.code || e.responseCode || e.message), 80) + (e && e.response ? ": " + clean(e.response, 160) : ""); }
+    }
+    if (!hasStore) return out(502, { error: "The mail server refused the message (" + mailError + ") and there is no queue to fall back on." });
+    const pending = (await list({ prefix: "outbox/", limit: 200 })).blobs.length;
+    if (pending >= 150) return out(429, { error: "Too many decision emails are waiting to be sent. Try again later." });
     await save("outbox/" + Date.now() + ".json", JSON.stringify(item));
-    return out(200, { ok: true, queued: true, to });
+    return out(200, { ok: true, queued: true, to, mail_error: mailError });
   } catch (e) {
     return out(502, { error: "The site's storage refused the request (" + clean(e && e.name, 60) + ": " + clean(e && e.message, 200) + ").", storage_settings_seen: blobVars });
   }
