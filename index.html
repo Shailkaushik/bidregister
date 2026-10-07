@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Consulting Bid Register | Cities Forum</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 :root{--teal:#067264;--teal-d:#045349;--teal2:#09B89D;--pale:#E4F6F2;--ink:#231F20;--muted:#6D6E71;--line:#D8E3E0;--bg:#F4F7F6;--card:#FFFFFF;
   --hi:#B3261E;--hi-bg:#FBE9E7;--mid:#8A5A00;--mid-bg:#FFF3D6;--lo:#5F6368;--own:#FFFBEA;--sans:Arial,Helvetica,sans-serif;--serif:Georgia,'Times New Roman',serif}
@@ -137,6 +138,59 @@ dt{color:var(--muted);font-size:12.5px;font-weight:700;padding-right:12px}
   dt{border-top:1px solid #EDF2F0;padding-bottom:0} dd{border-top:0;padding-top:2px}
   .own input,.own select,.own textarea{font-size:16px;padding:10px}
   .own .acts .btn{flex:1 1 100%;padding:12px}
+}
+/* Register look: matches the Consulting Bid Pipeline page (IBM Plex, slate and teal, plain ledger). Sign-in page is untouched. */
+#app{--teal:#0c6470;--teal-d:#0c6470;--teal2:#0c6470;--pale:color-mix(in srgb,#0c6470 7%,transparent);--ink:#16242c;--muted:#5a6b74;--line:#d3dbdf;--bg:#f3f5f6;--card:#fff;--panel:#fff;
+  --hi:#a3261d;--hi-bg:#fbe4e1;--mid:#8a5a00;--mid-bg:#fdf1d6;--lo:#5a6b74;--own:#fff8e1;--chip:#eef1f2;--ok:#1d6b3a;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--cond:"IBM Plex Sans Condensed","IBM Plex Sans",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:100vh}
+@media (prefers-color-scheme:dark){#app{--teal:#57bccb;--teal-d:#57bccb;--teal2:#57bccb;--pale:color-mix(in srgb,#57bccb 9%,transparent);--ink:#e4ecef;--muted:#93a5ae;--line:#2c3c44;--bg:#10181c;--card:#18242a;--panel:#18242a;
+  --hi:#ff8f85;--hi-bg:#40201d;--mid:#f0bd5a;--mid-bg:#3a2f12;--lo:#93a5ae;--own:#2c2a1a;--chip:#22313a;--ok:#79d09a;color-scheme:dark}}
+body{background:var(--bg,#f3f5f6)}
+#app .topbar{background:transparent;color:var(--ink);border-bottom:0}
+#app .topbar-in{max-width:1280px;padding:20px 16px 0}
+#app .topbar img{background:transparent;border-radius:0;width:44px;height:44px;object-fit:contain}
+#app .topbar h1{font-family:var(--cond);font-size:26px;font-weight:600;letter-spacing:.01em}
+#app .topbar .sub{color:var(--muted);opacity:1;font-size:14px}
+#app .topbar .btn.ghost,#app .btn.ghost{background:transparent;color:var(--teal);border:1px solid var(--line)}
+#app .btn{font-family:var(--sans);font-weight:600;border-radius:4px;background:var(--teal);color:var(--bg);border-color:var(--teal)}
+#app .btn.ghost{color:var(--teal);background:transparent}
+#app .wrap{max-width:1280px;padding:16px 16px 48px}
+#app .kpis{display:flex;flex-wrap:wrap;gap:8px 28px;border-block:1px solid var(--line);padding-block:12px}
+#app .kpi{background:transparent;border:0;border-radius:0;padding:0;min-width:0}
+#app .kpi b{font-family:var(--mono);font-size:22px;font-weight:500}
+#app .kpi span{font-size:12px;font-weight:400;letter-spacing:.06em;color:var(--muted)}
+#app .kpi.alert b{color:var(--hi)} #app .kpi.warn b{color:var(--mid)}
+#app .panel{background:transparent;border:0}
+#app .filters{padding:0 0 8px}
+#app .filters input[type=search],#app .filters select,#app .own input,#app .own select,#app .own textarea{font:14px var(--sans);color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:4px;padding:6px 8px}
+#app .scroll{background:var(--card);border:1px solid var(--line);border-radius:6px}
+#app thead th{background:transparent;color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.06em;border-bottom:1px solid var(--line);padding:8px 10px}
+#app thead th[data-k]:hover{background:var(--pale)}
+#app td{padding:8px 10px;border-bottom:1px solid var(--line)}
+#app tr.row:nth-child(4n+1) td{background:transparent}
+#app tr.row:hover td,#app tr.row.open td{background:var(--pale)}
+#app .t{font-weight:500}
+#app .num,#app td[data-l="Submission deadline"],#app td[data-l="UAE time"]{font-family:var(--mono);font-size:12px}
+#app .pill{background:transparent;border:1px solid currentColor;border-radius:10px;font-size:11px;font-weight:600;padding:1px 7px}
+#app .p-High{background:var(--hi-bg)} #app .p-Medium{background:var(--mid-bg)} #app .p-Low{background:transparent}
+#app .s-New,#app .s-Updated{color:var(--teal);background:transparent} #app .s-Closing{background:var(--mid-bg)}
+#app .s-Closed,#app .s-Cancelled,#app .s-Unchanged,#app .d-Unassigned{color:var(--lo);background:transparent}
+#app .d-Bid{color:var(--ok);background:transparent} #app .d-No{color:var(--lo);background:transparent} #app .d-Watch,#app .d-Partner{color:var(--mid);background:transparent}
+#app .band,#app .days{font-size:11px;font-weight:600}
+#app tr.detail td{background:var(--bg);padding:14px 16px;border-bottom:1px solid var(--line)}
+#app .box{background:transparent;border:0;border-radius:0;padding:0}
+#app .box h3{font-size:12px;letter-spacing:.06em;color:var(--muted)}
+#app .assess{border-left:3px solid var(--teal);padding-left:10px}
+#app .own{background:var(--own);border:1px solid var(--line);border-radius:6px;padding:12px}
+#app dt,#app dd{border-top:0;padding:2px 0}
+#app dt{font-size:12px;font-weight:400}
+#app dl{gap:4px 12px}
+#app .foot{border-top:1px solid var(--line)}
+@media (max-width:760px){
+  #app tr.row,#app tr.row.open{background:var(--card)} #app tr.row.open{background:var(--pale)}
+  #app .kpis{gap:8px 16px} #app .kpi b{font-size:19px} #app .kpi span{font-size:10px}
+  #app tr.detail td{background:var(--bg)}
 }
 </style>
 </head>
