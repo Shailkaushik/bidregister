@@ -346,9 +346,8 @@ function detail(p){
       '<label>Next action<input id="u-next_action_internal" value="'+esc(dec(p,"next_action_internal"))+'"></label>'+
       '<label>Internal target date<input type="date" id="u-internal_target_date" value="'+esc(dec(p,"internal_target_date"))+'"></label>'+
       '<label>Notes<textarea id="u-user_notes">'+esc(dec(p,"user_notes"))+'</textarea></label>'+
-      '<label>Send decision to (email)<input type="text" id="u-notify_email" value="'+esc(dec(p,"notify_email"))+'" placeholder="name@citiesforum.org, name2@citiesforum.org"></label>'+
-      '<div class="acts"><button class="btn" type="submit" data-act="mail">Save and email decision</button><button class="btn ghost" type="submit" data-act="save">Save only</button></div>'+
-      '<span class="note" id="savemsg">Save and email sends the decision to the addresses above straight away, from business@citiesforum.org.</span></form>'+
+      '<div class="acts"><button class="btn" type="submit">Save decision</button></div>'+
+      '<span class="note" id="savemsg">Saved in this browser only. Use Export decisions to back them up or share them.</span></form>'+
   '</div></td></tr>';
 }
 function toggle(id){openId=openId===id?null:id;render()}
@@ -356,32 +355,14 @@ $("sortsel").addEventListener("change",function(e){var v=e.target.value.split(":
 document.querySelector("thead").addEventListener("click",function(e){var th=e.target.closest("th[data-k]");if(!th)return;if(sortKey===th.dataset.k)sortDir=-sortDir;else{sortKey=th.dataset.k;sortDir=1}render()});
 $("rows").addEventListener("click",function(e){if(e.target.closest("tr.detail"))return;var r=e.target.closest("tr.row");if(r)toggle(r.dataset.id)});
 $("rows").addEventListener("keydown",function(e){if(e.key==="Enter"&&e.target.matches&&e.target.matches("tr.row"))toggle(e.target.dataset.id)});
-var UF=["bid_decision","internal_owner","next_action_internal","internal_target_date","user_notes","notify_email"];
+var UF=["bid_decision","internal_owner","next_action_internal","internal_target_date","user_notes"];
 $("rows").addEventListener("submit",function(e){
   e.preventDefault();if(!openId)return;
-  var act=(e.submitter&&e.submitter.dataset.act)||"save", msg=$("savemsg"), d={updated_at:new Date().toISOString(),updated_by:user};
+  var msg=$("savemsg"), d={updated_at:new Date().toISOString(),updated_by:user};
   UF.forEach(function(k){d[k]=$("u-"+k).value.trim()});if(!d.internal_owner)d.internal_owner="Unassigned";
-  var to=d.notify_email.split(/[,;\s]+/).filter(Boolean), bad=to.filter(function(a){return !/^[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+$/.test(a)});
-  if(act==="mail"&&!to.length){msg.textContent="Enter at least one email address to send the decision to.";$("u-notify_email").focus();return}
-  if(bad.length){msg.textContent="Check this email address: "+bad[0];$("u-notify_email").focus();return}
   try{decisions=load();decisions[openId]=d;save(decisions)}catch(x){msg.textContent="Not saved: this browser is blocking local storage.";return}
-  var p=state.opportunities[openId], id=openId;
   render();
-  var m2=$("savemsg");
-  if(act==="mail"){
-    var pw="";try{pw=sessionStorage.getItem("bidRegisterKey")||""}catch(x){}
-    var btns=document.querySelectorAll("#ownform button");btns.forEach(function(x){x.disabled=true});
-    if(m2)m2.textContent="Saved. Sending the email…";
-    var payload={password:pw,user:user,to:to,opportunity_id:id,decision:d,opportunity:{title:p.title,client:p.client,country:p.country,reference:p.reference,opportunity_type:p.opportunity_type,deadline_original:p.deadline_original,deadline_uae:p.deadline_uae,recommended_bidder:p.recommended_bidder,priority:p.priority,eligibility_status:p.eligibility_status,notice:(p.evidence_urls||[])[0]||""}};
-    fetch("/api/decisions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)})
-      .then(function(r){return r.json().catch(function(){return {error:"The email service did not answer (status "+r.status+")."}})})
-      .catch(function(){return {error:"The email service could not be reached. Check your connection."}})
-      .then(function(r){var m3=$("savemsg");document.querySelectorAll("#ownform button").forEach(function(x){x.disabled=false});
-        if(!m3||openId!==id)return;
-        if(r&&r.ok&&r.sent){m3.style.color="#067264";m3.textContent="Saved and emailed to "+r.to.join(", ")+"."}
-        else if(r&&r.ok){m3.style.color="#8A5A00";m3.textContent="Saved. The email to "+r.to.join(", ")+" could not go immediately, so it is queued and will be sent at the next hourly send (08:00 to 20:00 UAE)."}
-        else{m3.style.color="#B3261E";m3.textContent="Saved, but the email was not sent. "+((r&&r.error)||"Unknown error.")}});
-  } else if(m2) m2.textContent="Saved.";
+  var m2=$("savemsg");if(m2)m2.textContent="Saved.";
 });
 ["q","f-status","f-priority","f-section","f-bidder","f-elig","f-decision"].forEach(function(id){$(id).addEventListener("input",render)});
 function kpis(){
@@ -410,7 +391,7 @@ $("x-file").onchange=function(e){var f=e.target.files[0];if(!f)return;var r=new 
     Object.keys(inc).forEach(function(k){var a=inc[k],c=cur[k];if(a&&typeof a==="object"&&(!c||String(a.updated_at||"")>=String(c.updated_at||""))){cur[k]=a;n++}});save(cur);decisions=cur;render();msg(n+" decisions imported. Where both had a decision, the newer one was kept.")}
     catch(x){msg("That file is not a decisions export from this register.")}};r.readAsText(f);e.target.value=""};
 $("x-csv").onclick=function(){var d=load();
-  var cols=["status","section","priority","eligibility_status","recommended_bidder","title","reference","lot","client","funder","country","opportunity_type","applicant_eligibility","publication_date","first_seen","deadline_original","deadline_uae","clarification_deadline","budget","duration","language","local_presence","firm_qualifications","fit","eligibility_gaps","recommended_action","bid_decision","internal_owner","next_action_internal","internal_target_date","user_notes","notify_email","verification_status","unresolved","last_checked","evidence_urls","id"];
+  var cols=["status","section","priority","eligibility_status","recommended_bidder","title","reference","lot","client","funder","country","opportunity_type","applicant_eligibility","publication_date","first_seen","deadline_original","deadline_uae","clarification_deadline","budget","duration","language","local_presence","firm_qualifications","fit","eligibility_gaps","recommended_action","bid_decision","internal_owner","next_action_internal","internal_target_date","user_notes","verification_status","unresolved","last_checked","evidence_urls","id"];
   var q=function(v){v=Array.isArray(v)?v.join(" "):(v==null?"":String(v));return '"'+v.replace(/"/g,'""')+'"'};
   cols.splice(cols.indexOf("deadline_uae")+1,0,"days_left_today");var rows=ops.filter(current).map(function(p){var m={};for(var k in p)m[k]=p[k];var x=d[p.id]||{};for(var k2 in x)m[k2]=x[k2];m.days_left_today=p._tm.days==null?"":p._tm.days;return cols.map(function(c){return q(m[c])}).join(",")});
   dl("bid-register-"+today+".csv","﻿"+cols.join(",")+"\n"+rows.join("\n"),"text/csv");msg(rows.length+" records downloaded, with the decisions saved in this browser.")};

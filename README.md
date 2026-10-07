@@ -18,20 +18,9 @@ curl -X POST https://<site>/api/bids -H 'Content-Type: application/json' \
   --data @<(jq -n --arg p "$REGISTER_PASSWORD" --slurpfile s pipeline.json '{password:$p,state:$s[0]}')
 ```
 
-Needs the Vercel Blob store already connected for decision emails. A rebuilt `index.html` is still a valid fallback.
+Needs a Vercel Blob store connected to the project. A rebuilt `index.html` is still a valid fallback.
 
 
-Bid decisions, owners and notes entered on the site are stored in each person's browser and are not written to this repository.
+Bid decisions, owners and notes entered on the site are stored in each person's browser and are not written to this repository. The site does not send any email.
 
 The email check only tests the address format; it does not prove who the visitor is. The password is what protects the data, and it is not stored in this repository.
-
-## Decision emails
-
-`api/decisions.js` is a Vercel function. When someone presses "Save and email decision":
-
-1. If `SMTP_USER` and `SMTP_PASS` are set in the Vercel project, the email is sent at once from that mailbox (Gmail by default; `SMTP_HOST`, `SMTP_PORT`, `MAIL_FROM` are optional).
-2. If they are not set, or the mail server refuses, the decision goes into an outbox in the connected Vercel Blob store, and a scheduled Claude task sends it within the hour (08:00 to 20:00 UAE).
-
-- Requests must carry the register password. `api/_auth.json` holds a salted hash of it; regenerate that file if the password changes.
-- Sign-in and recipient addresses must be in the allowed domains (`citiesforum.org` by default; override with `ALLOWED_DOMAINS`, comma-separated).
-- Never commit mail settings to this repository.
