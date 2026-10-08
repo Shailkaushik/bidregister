@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Consulting Bid Register | Cities Forum</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 :root{--teal:#067264;--teal-d:#045349;--teal2:#09B89D;--pale:#E4F6F2;--ink:#231F20;--muted:#6D6E71;--line:#D8E3E0;--bg:#F4F7F6;--card:#FFFFFF;
   --hi:#B3261E;--hi-bg:#FBE9E7;--mid:#8A5A00;--mid-bg:#FFF3D6;--lo:#5F6368;--own:#FFFBEA;--sans:Arial,Helvetica,sans-serif;--serif:Georgia,'Times New Roman',serif}
@@ -139,10 +138,10 @@ dt{color:var(--muted);font-size:12.5px;font-weight:700;padding-right:12px}
   .own input,.own select,.own textarea{font-size:16px;padding:10px}
   .own .acts .btn{flex:1 1 100%;padding:12px}
 }
-/* Register look: matches the Consulting Bid Pipeline page (IBM Plex, slate and teal, plain ledger). Sign-in page is untouched. */
+/* Register look: matches the Consulting Bid Pipeline page (slate and teal, plain ledger), set in Arial. Sign-in page is untouched. */
 #app{--teal:#0c6470;--teal-d:#0c6470;--teal2:#0c6470;--pale:color-mix(in srgb,#0c6470 7%,transparent);--ink:#16242c;--muted:#5a6b74;--line:#d3dbdf;--bg:#f3f5f6;--card:#fff;--panel:#fff;
   --hi:#a3261d;--hi-bg:#fbe4e1;--mid:#8a5a00;--mid-bg:#fdf1d6;--lo:#5a6b74;--own:#fff8e1;--chip:#eef1f2;--ok:#1d6b3a;
-  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--cond:"IBM Plex Sans Condensed","IBM Plex Sans",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --sans:Arial,Helvetica,sans-serif;--cond:Arial,Helvetica,sans-serif;--mono:Arial,Helvetica,sans-serif;
   background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:100vh}
 @media (prefers-color-scheme:dark){#app{--teal:#57bccb;--teal-d:#57bccb;--teal2:#57bccb;--pale:color-mix(in srgb,#57bccb 9%,transparent);--ink:#e4ecef;--muted:#93a5ae;--line:#2c3c44;--bg:#10181c;--card:#18242a;--panel:#18242a;
   --hi:#ff8f85;--hi-bg:#40201d;--mid:#f0bd5a;--mid-bg:#3a2f12;--lo:#93a5ae;--own:#2c2a1a;--chip:#22313a;--ok:#79d09a;color-scheme:dark}}
@@ -150,7 +149,7 @@ body{background:var(--bg,#f3f5f6)}
 #app .topbar{background:transparent;color:var(--ink);border-bottom:0}
 #app .topbar-in{max-width:1280px;padding:20px 16px 0}
 #app .topbar img{background:transparent;border-radius:0;width:44px;height:44px;object-fit:contain}
-#app .topbar h1{font-family:var(--cond);font-size:26px;font-weight:600;letter-spacing:.01em}
+#app .topbar h1{font-family:Arial,Helvetica,sans-serif;font-size:26px;font-weight:700}
 #app .topbar .sub{color:var(--muted);opacity:1;font-size:14px}
 #app .topbar .btn.ghost,#app .btn.ghost{background:transparent;color:var(--teal);border:1px solid var(--line)}
 #app .btn{font-family:var(--sans);font-weight:600;border-radius:4px;background:var(--teal);color:var(--bg);border-color:var(--teal)}
@@ -187,6 +186,11 @@ body{background:var(--bg,#f3f5f6)}
 #app dt{font-size:12px;font-weight:400}
 #app dl{gap:4px 12px}
 #app .foot{border-top:1px solid var(--line)}
+#app .groups{display:flex;gap:6px;border-bottom:1px solid var(--line)}
+#app .grp{background:transparent;color:var(--muted);border:0;border-bottom:3px solid transparent;border-radius:0;padding:10px 14px;font:700 14px Arial,Helvetica,sans-serif;cursor:pointer;margin-bottom:-1px}
+#app .grp b{font-weight:400;margin-left:4px}
+#app .grp.on{color:var(--teal);border-bottom-color:var(--teal)}
+#app .grp:hover{background:var(--pale)}
 @media (max-width:760px){
   #app tr.row,#app tr.row.open{background:var(--card)} #app tr.row.open{background:var(--pale)}
   #app .kpis{gap:8px 16px} #app .kpi b{font-size:19px} #app .kpi span{font-size:10px}
@@ -219,9 +223,11 @@ body{background:var(--bg,#f3f5f6)}
     <button class="btn ghost" type="button" id="x-csv">Download CSV</button>
     <button class="btn ghost" type="button" id="x-exp">Export decisions</button>
     <button class="btn ghost" type="button" id="x-imp">Import decisions</button>
+    <button class="btn ghost" type="button" id="x-out">Log out</button>
     <input type="file" id="x-file" accept="application/json,.json" hidden>
   </div></div>
   <div class="wrap">
+    <div class="groups" id="groups" role="tablist" aria-label="Opportunity group"><button type="button" role="tab" class="grp on" data-g="firm" aria-selected="true">Firm opportunities <b id="gc-firm"></b></button><button type="button" role="tab" class="grp" data-g="ind" aria-selected="false">Individual consultancies <b id="gc-ind"></b></button></div>
     <section class="kpis" id="kpis" aria-label="Summary"></section>
     <section class="panel">
       <div class="filters" aria-label="Filters">
@@ -229,6 +235,7 @@ body{background:var(--bg,#f3f5f6)}
         <select id="f-status" aria-label="Status"><option value="">Any status</option></select>
         <select id="f-priority" aria-label="Priority"><option value="">Any priority</option></select>
         <select id="f-section" aria-label="Category"><option value="">Any category</option></select>
+        <select id="f-continent" aria-label="Continent"><option value="">Any continent</option></select>
         <select id="f-bidder" aria-label="Recommended bidder"><option value="">Any bidder</option></select>
         <select id="f-elig" aria-label="Eligibility"><option value="">Any eligibility</option></select>
         <select id="f-decision" aria-label="Bid decision"><option value="">Any decision</option></select>
@@ -285,10 +292,32 @@ $("gateform").addEventListener("submit",async function(ev){ev.preventDefault();v
 function uniq(k){var s={};ops.forEach(function(p){if(p[k])s[p[k]]=1});return Object.keys(s).sort()}
 function fill(sel,vals){vals.forEach(function(v){var o=document.createElement("option");o.value=o.textContent=v;sel.appendChild(o)})}
 var DEC=["Unassigned","Bid","No bid","Watch","Partner search"];
+var CONT_MAP={Africa:"algeria,angola,benin,botswana,burkina faso,burundi,cameroon,cape verde,cabo verde,central african republic,chad,comoros,congo,democratic republic of the congo,djibouti,egypt,equatorial guinea,eritrea,eswatini,swaziland,ethiopia,gabon,gambia,ghana,guinea-bissau,guinea,ivory coast,cote d'ivoire,kenya,lesotho,liberia,libya,madagascar,malawi,mali,mauritania,mauritius,morocco,mozambique,namibia,niger,nigeria,rwanda,sao tome,senegal,seychelles,sierra leone,somalia,somaliland,south africa,south sudan,sudan,tanzania,togo,tunisia,uganda,zambia,zimbabwe,africa,lcbc,sahel",
+ Asia:"afghanistan,armenia,azerbaijan,bahrain,bangladesh,bhutan,brunei,cambodia,china,georgia,india,indonesia,iran,iraq,israel,japan,jordan,kazakhstan,korea,kuwait,kyrgyz,laos,lao pdr,lebanon,malaysia,maldives,mongolia,myanmar,nepal,oman,pakistan,palestine,philippines,qatar,saudi arabia,singapore,sri lanka,syria,tajikistan,thailand,timor-leste,timor,turkey,turkmenistan,united arab emirates,uae,uzbekistan,vietnam,viet nam,yemen,asia",
+ Europe:"albania,andorra,austria,belarus,belgium,bosnia,bulgaria,croatia,cyprus,czech,denmark,estonia,finland,france,germany,greece,hungary,iceland,ireland,italy,kosovo,latvia,liechtenstein,lithuania,luxembourg,malta,moldova,monaco,montenegro,netherlands,north macedonia,norway,poland,portugal,romania,russia,san marino,serbia,slovakia,slovenia,spain,sweden,switzerland,ukraine,united kingdom,uk,europe",
+ Americas:"antigua,argentina,bahamas,barbados,belize,bolivia,brazil,canada,chile,colombia,costa rica,cuba,dominica,dominican republic,ecuador,el salvador,grenada,guatemala,guyana,haiti,honduras,jamaica,mexico,nicaragua,panama,paraguay,peru,saint lucia,suriname,trinidad,uruguay,united states,usa,venezuela,latin america,caribbean,americas",
+ Oceania:"australia,fiji,kiribati,marshall islands,micronesia,nauru,new zealand,palau,papua new guinea,samoa,solomon islands,tonga,tuvalu,vanuatu,pacific"};
+var CONT_ORDER=["Africa","Asia","Europe","Americas","Oceania","Global or multiple","Not stated"];
+var CONT_RX=(function(){var l=[];Object.keys(CONT_MAP).forEach(function(c){CONT_MAP[c].split(",").forEach(function(n){l.push([n,c])})});l.sort(function(a,b2){return b2[0].length-a[0].length});
+  return l.map(function(x){return [new RegExp("(^|[^a-z])"+x[0].replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"(?![a-z])"),x[1]]})})();
+/* The data has a country text only; the continent is worked out from it. Mixed regions show as Global or multiple. */
+function continentOf(t){var x=String(t||"").toLowerCase(),f={},n=0;
+  CONT_RX.forEach(function(r){if(r[0].test(x)){x=x.replace(r[0]," ");if(!f[r[1]]){f[r[1]]=1;n++}}});
+  if(n===1)return Object.keys(f)[0];if(n>1)return "Global or multiple";
+  return /global|worldwide|multi|regional|international|low- and middle|oda/.test(String(t||"").toLowerCase())?"Global or multiple":"Not stated"}
+var grp="firm";
+function inGrp(p){return (p.section==="Individual consultancy"||p.opportunity_type==="Individual consultancy"?"ind":"firm")===grp}
+function fillGroupFilters(){
+  var cur=ops.filter(function(p){return inGrp(p)&&current(p)}),sec=$("f-section"),ct=$("f-continent"),ss={},cc={};
+  [sec,ct].forEach(function(e){while(e.options.length>1)e.remove(1);e.value=""});
+  cur.forEach(function(p){ss[p.section]=1;cc[p.continent]=(cc[p.continent]||0)+1});
+  Object.keys(ss).sort().forEach(function(v){var o=document.createElement("option");o.value=o.textContent=v;sec.appendChild(o)});
+  CONT_ORDER.forEach(function(v){if(cc[v]){var o=document.createElement("option");o.value=v;o.textContent=v+" ("+cc[v]+")";ct.appendChild(o)}})}
 function match(p){
   var q=$("q").value.trim().toLowerCase();
-  if(q&&(p.title+" "+p.client+" "+p.country+" "+p.reference+" "+p.funder).toLowerCase().indexOf(q)<0)return false;
-  if(!current(p))return false;
+  if(q&&(p.title+" "+p.client+" "+p.country+" "+p.continent+" "+p.reference+" "+p.funder).toLowerCase().indexOf(q)<0)return false;
+  if(!current(p)||!inGrp(p))return false;
+  var cn=$("f-continent").value;if(cn&&p.continent!==cn)return false;
   var pairs=[["f-status","status"],["f-priority","priority"],["f-section","section"],["f-bidder","recommended_bidder"],["f-elig","eligibility_status"]];
   for(var i=0;i<pairs.length;i++){var v=$(pairs[i][0]).value;if(v&&p[pairs[i][1]]!==v)return false}
   var d=$("f-decision").value;if(d&&(dec(p,"bid_decision")||"Unassigned")!==d)return false;
@@ -329,9 +358,9 @@ function render(){
     var h='<tr class="row'+(p.is_new_this_run?" isnew":"")+(p.id===openId?" open":"")+'" data-id="'+esc(p.id)+'" tabindex="0"><td data-l="Status"><span class="pill s-'+esc(String(p.status).split(" ")[0])+'">'+esc(p.status)+'</span></td><td data-l="Priority"><span class="pill p-'+esc(p.priority)+'">'+esc(p.priority)+'</span></td><td class="t">'+(p.is_new_this_run?'<span class="newtag">NEW</span> ':'')+esc(p.title)+'<div class="meta">'+esc(p.client)+' · '+esc(p.country)+' · Ref '+esc(p.reference)+'</div></td><td data-l="Type"><div>'+esc(p.opportunity_type)+'<span class="meta"><span class="dot"> · </span>'+esc(p.section)+'</span></div></td><td data-l="Submission deadline" class="num"><div>'+esc(p.deadline_original)+band+'</div></td><td data-l="UAE time" class="num"><div>'+esc(p.deadline_uae)+'</div></td><td data-l="Bidder"><div>'+esc(p.recommended_bidder)+'</div></td><td data-l="Eligibility"><div>'+esc(p.eligibility_status)+'</div></td><td data-l="Decision"><span class="pill d-'+esc(d.split(" ")[0])+'">'+esc(d)+'</span>'+(own&&own!=="Unassigned"?'<div class="meta">'+esc(own)+'</div>':"")+'</td></tr>';
     if(p.id===openId)h+=detail(p);
     return h}).join("");
-  var cur=ops.filter(current).length;$("count").textContent=list.length+" of "+cur+" current opportunities shown, new today pinned on top and marked NEW, then soonest deadline first unless you sort by another column. Opportunities whose deadline has passed are removed automatically.";
+  var cur=ops.filter(current).filter(inGrp).length;$("count").textContent=list.length+" of "+cur+" current opportunities shown, new today pinned on top and marked NEW, then soonest deadline first unless you sort by another column. Opportunities whose deadline has passed are removed automatically.";
 }
-var F=[["Client","client"],["Implementing agency","implementing_agency"],["Funder","funder"],["Country","country"],["City or region","city_region"],["Remote or on-site","remote_onsite"],["Scope","scope"],["Applicant eligibility","applicant_eligibility"],["Published","publication_date"],["First identified","first_seen"],["Clarification deadline","clarification_deadline"],["Other mandatory dates","other_dates"],["Budget (consulting contract)","budget"],["Duration","duration"],["Language","language"],["Local presence","local_presence"],["Firm qualifications","firm_qualifications"],["Expert requirements","expert_requirements"],["Consortium rules","consortium_rules"],["Procurement method","procurement_method"],["Submission requirements","submission_requirements"],["Verification","verification_status"],["Unresolved","unresolved"],["Last checked","last_checked"]];
+var F=[["Client","client"],["Implementing agency","implementing_agency"],["Funder","funder"],["Country","country"],["Continent","continent"],["City or region","city_region"],["Remote or on-site","remote_onsite"],["Scope","scope"],["Applicant eligibility","applicant_eligibility"],["Published","publication_date"],["First identified","first_seen"],["Clarification deadline","clarification_deadline"],["Other mandatory dates","other_dates"],["Budget (consulting contract)","budget"],["Duration","duration"],["Language","language"],["Local presence","local_presence"],["Firm qualifications","firm_qualifications"],["Expert requirements","expert_requirements"],["Consortium rules","consortium_rules"],["Procurement method","procurement_method"],["Submission requirements","submission_requirements"],["Verification","verification_status"],["Unresolved","unresolved"],["Last checked","last_checked"]];
 function detail(p){
   var links=(p.evidence_urls||[]).map(function(u){return /^https?:\/\//.test(u)?'<a href="'+esc(u)+'" target="_blank" rel="noopener">'+esc(u)+'</a>':esc(u)}).join("<br>")||"Not verified";
   var hist=(p.history||[]).map(function(h){return '<div>'+esc(h.date)+': '+esc(h.change)+'</div>'}).join("");
@@ -364,24 +393,28 @@ $("rows").addEventListener("submit",function(e){
   render();
   var m2=$("savemsg");if(m2)m2.textContent="Saved.";
 });
-["q","f-status","f-priority","f-section","f-bidder","f-elig","f-decision"].forEach(function(id){$(id).addEventListener("input",render)});
+["q","f-status","f-priority","f-section","f-continent","f-bidder","f-elig","f-decision"].forEach(function(id){$(id).addEventListener("input",render)});
 function kpis(){
   ops.forEach(function(p){if(!p._tm)p._tm=timing(p)});
-  var live=ops.filter(current), n=function(f){return live.filter(f).length}, within=function(k){return n(function(p){return p._tm.days!=null&&p._tm.days<=k})};
+  var live=ops.filter(current).filter(inGrp), n=function(f){return live.filter(f).length}, within=function(k){return n(function(p){return p._tm.days!=null&&p._tm.days<=k})};
   var cells=[["Current opportunities",live.length,""],["New this run",n(function(p){return p.is_new_this_run}),""],["Updated this run",n(function(p){return p.is_updated_this_run}),""],["High priority",n(function(p){return p.priority==="High"}),""],["Due in 3 days",within(3),"alert"],["Due in 7 days",within(7),"warn"],["Due in 14 days",within(14),""],["Decisions made",live.filter(function(p){var d=decisions[p.id];return d&&d.bid_decision&&d.bid_decision!=="Unassigned"}).length,""]];
+  ["firm","ind"].forEach(function(g){var e=$("gc-"+g);if(e)e.textContent="("+ops.filter(function(p){return current(p)&&(p.section==="Individual consultancy"||p.opportunity_type==="Individual consultancy"?"ind":"firm")===g}).length+")"});
   $("kpis").innerHTML=cells.map(function(c){return '<div class="kpi '+c[2]+'"><b>'+c[1]+'</b><span>'+c[0]+'</span></div>'}).join("");
 }
 var started=false;
 function start(){
   if(started)return;started=true;
   ops=Object.keys(state.opportunities||{}).map(function(k){return state.opportunities[k]});
-  ops.forEach(function(p){p._tm=timing(p)});fill($("f-status"),uniq("status").filter(function(v){return v!=="Closed"&&v!=="Cancelled"}));fill($("f-priority"),["High","Medium","Low"]);fill($("f-section"),uniq("section"));fill($("f-bidder"),uniq("recommended_bidder"));fill($("f-elig"),uniq("eligibility_status"));fill($("f-decision"),DEC);
+  ops.forEach(function(p){p._tm=timing(p);p.continent=continentOf(p.country)});fill($("f-status"),uniq("status").filter(function(v){return v!=="Closed"&&v!=="Cancelled"}));fill($("f-priority"),["High","Medium","Low"]);fillGroupFilters();fill($("f-bidder"),uniq("recommended_bidder"));fill($("f-elig"),uniq("eligibility_status"));fill($("f-decision"),DEC);
   var run=(state.runs||[]).slice(-1)[0]||{};
   $("runinfo").textContent="Data updated as on "+STAMP+" · Signed in as "+user;
   kpis();render();
 }
 var origRender=render; render=function(){origRender();if(started)kpis()};
 /* ---------- tools ---------- */
+$("groups").addEventListener("click",function(e){var b2=e.target.closest(".grp");if(!b2||b2.dataset.g===grp)return;grp=b2.dataset.g;openId=null;
+  document.querySelectorAll("#groups .grp").forEach(function(x){var on=x===b2;x.classList.toggle("on",on);x.setAttribute("aria-selected",on?"true":"false")});fillGroupFilters();render()});
+$("x-out").onclick=function(){try{sessionStorage.removeItem("bidRegisterKey");sessionStorage.removeItem("bidRegisterUser")}catch(e){};location.reload()};
 function msg(t){$("x-msg").textContent=t}
 function dl(name,text,type){var bl=new Blob([text],{type:type}),u=URL.createObjectURL(bl),a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},1000)}
 var today=new Date().toISOString().slice(0,10);
@@ -391,7 +424,7 @@ $("x-file").onchange=function(e){var f=e.target.files[0];if(!f)return;var r=new 
     Object.keys(inc).forEach(function(k){var a=inc[k],c=cur[k];if(a&&typeof a==="object"&&(!c||String(a.updated_at||"")>=String(c.updated_at||""))){cur[k]=a;n++}});save(cur);decisions=cur;render();msg(n+" decisions imported. Where both had a decision, the newer one was kept.")}
     catch(x){msg("That file is not a decisions export from this register.")}};r.readAsText(f);e.target.value=""};
 $("x-csv").onclick=function(){var d=load();
-  var cols=["status","section","priority","eligibility_status","recommended_bidder","title","reference","lot","client","funder","country","opportunity_type","applicant_eligibility","publication_date","first_seen","deadline_original","deadline_uae","clarification_deadline","budget","duration","language","local_presence","firm_qualifications","fit","eligibility_gaps","recommended_action","bid_decision","internal_owner","next_action_internal","internal_target_date","user_notes","verification_status","unresolved","last_checked","evidence_urls","id"];
+  var cols=["status","section","priority","eligibility_status","recommended_bidder","title","reference","lot","client","funder","country","continent","opportunity_type","applicant_eligibility","publication_date","first_seen","deadline_original","deadline_uae","clarification_deadline","budget","duration","language","local_presence","firm_qualifications","fit","eligibility_gaps","recommended_action","bid_decision","internal_owner","next_action_internal","internal_target_date","user_notes","verification_status","unresolved","last_checked","evidence_urls","id"];
   var q=function(v){v=Array.isArray(v)?v.join(" "):(v==null?"":String(v));return '"'+v.replace(/"/g,'""')+'"'};
   cols.splice(cols.indexOf("deadline_uae")+1,0,"days_left_today");var rows=ops.filter(current).map(function(p){var m={};for(var k in p)m[k]=p[k];var x=d[p.id]||{};for(var k2 in x)m[k2]=x[k2];m.days_left_today=p._tm.days==null?"":p._tm.days;return cols.map(function(c){return q(m[c])}).join(",")});
   dl("bid-register-"+today+".csv","﻿"+cols.join(",")+"\n"+rows.join("\n"),"text/csv");msg(rows.length+" records downloaded, with the decisions saved in this browser.")};
