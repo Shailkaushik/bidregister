@@ -5,7 +5,7 @@
 // POST /api/decisions                {password, user, items: {id: decision}}   save one or more decisions
 //        add "import": true to keep the decisions' own updated_at (used to push older local copies up);
 //        otherwise the server stamps the save time. The newest save per opportunity wins.
-const { clean, hasStore, okAddr, inDomain, okPassword, readBlob, writeBlob } = require("./_common");
+const { clean, hasStore, okAddr, inDomain, okPassword, readBlob, writeBlob, isPrecondition } = require("./_common");
 
 const PATH = "data/decisions.json";
 const OPTIONS = ["Unassigned", "Bid", "No bid", "Watch", "Partner search"];
@@ -54,9 +54,10 @@ module.exports = async (req, res) => {
       }
       if (!changed) return out(200, { ok: true, saved: 0, items });
       try {
-        await writeBlob(PATH, JSON.stringify({ updated_at: now, items }), etag ? { ifMatch: etag } : {});
+        // From the 4th try on, write without the version check: the merge above is already done, so at worst the last of several simultaneous saves wins.
+        await writeBlob(PATH, JSON.stringify({ updated_at: now, items }), etag && attempt < 3 ? { ifMatch: etag } : {});
         return out(200, { ok: true, saved: changed, items });
-      } catch (e) { if (!(e && e.name === "BlobPreconditionFailedError")) throw e; } // someone saved at the same moment: read again and retry
+      } catch (e) { if (!isPrecondition(e)) throw e; } // someone saved at the same moment: read again and retry
     }
     return out(409, { error: "Several people saved at the same moment. Please save again." });
   } catch (e) {

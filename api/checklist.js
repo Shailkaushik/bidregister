@@ -5,8 +5,8 @@
 // GET  /api/checklist?id=<bid id>          header X-Register-Key  -> the file itself, as a download
 // POST /api/checklist?id=<bid id>&name=<file name>   headers X-Register-Key, X-User; the body is the raw file
 // Only Excel workbooks are accepted (.xlsx or .xls, checked by name and by file contents), up to 4 MB.
-const { put, get, del } = require("@vercel/blob");
-const { clean, hasStore, okAddr, inDomain, okPassword, readBlob, writeBlob } = require("./_common");
+const { get, del } = require("@vercel/blob");
+const { clean, hasStore, okAddr, inDomain, okPassword, readBlob, writeBlob, putAccess, isPrecondition } = require("./_common");
 
 const META = "data/checklists.json";
 const MAX = 4 * 1024 * 1024;
@@ -29,10 +29,7 @@ async function readFile(pathname) {
   }
   return null;
 }
-async function saveFile(path, buf, contentType) {
-  try { return await put(path, buf, { access: "private", addRandomSuffix: true, contentType }); }
-  catch (e) { return await put(path, buf, { access: "public", addRandomSuffix: true, contentType }); }
-}
+const saveFile = (path, buf, contentType) => putAccess(path, buf, { addRandomSuffix: true, contentType });
 
 module.exports = async (req, res) => {
   const out = (code, body) => { res.setHeader("Cache-Control", "no-store"); return res.status(code).json(body); };
@@ -72,8 +69,8 @@ module.exports = async (req, res) => {
       const { items, etag } = await loadMeta();
       old = items[id] ? items[id].path : null;
       items[id] = { name, size: body.length, uploaded_by: by, uploaded_at: now, path: saved.pathname };
-      try { await writeBlob(META, JSON.stringify({ updated_at: now, items }), etag ? { ifMatch: etag } : {}); break; }
-      catch (e) { if (!(e && e.name === "BlobPreconditionFailedError") || attempt === 4) throw e; }
+      try { await writeBlob(META, JSON.stringify({ updated_at: now, items }), etag && attempt < 3 ? { ifMatch: etag } : {}); break; }
+      catch (e) { if (!isPrecondition(e) || attempt === 4) throw e; }
     }
     if (old && old !== saved.pathname) { try { await del(old); } catch (e) {} } // the replaced file
     const { items } = await loadMeta();
