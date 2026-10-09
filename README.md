@@ -27,6 +27,15 @@ Needs a Vercel Blob store connected to the project. A rebuilt `index.html` is st
 
 - `GET /api/decisions` (header `X-Register-Key: <password>`) returns all decisions. `POST /api/decisions` with `{password, user, items: {id: decision}}` saves them; the newest save per bid wins, and the save is retried if two people save at once.
 - The page loads decisions when it opens, then every 45 seconds and whenever the tab is focused again. The copy in the browser is only a cache. If the server cannot be reached, the decision is kept on that device and sent again automatically.
-- The site does not send any email.
+- ## Bid checklists
+
+`api/checklist.js` lets anyone signed in upload one Excel checklist per bid ("Upload bid checklist" in the bid's decision box) and download it. Uploading again replaces the file.
+
+- Only Excel workbooks are accepted: `.xlsx` or `.xls`, up to 4 MB (Vercel's request limit). The server checks the file name and the file contents, so a renamed file of another type is refused. Macro files (`.xlsm`) are not accepted.
+- Files are kept in the Blob store under `checklists/`, with the list of uploads in `data/checklists.json`. Reading, uploading and downloading all need the register password; an `@citiesforum.org` address is needed to upload.
+- If the Blob store was created as public, the file addresses are public but unguessable (random suffix) and are never shown on the page; a private store is better.
+
+The site does not send any email.
+
 
 The email check only tests the address format; it does not prove who the visitor is. The password is what protects the data, and it is not stored in this repository.

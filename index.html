@@ -186,6 +186,9 @@ body{background:var(--bg,#f3f5f6)}
 #app dt{font-size:12px;font-weight:400}
 #app dl{gap:4px 12px}
 #app .foot{border-top:1px solid var(--line)}
+#app .chk{border-top:1px solid var(--line);padding-top:10px;margin-top:4px;display:flex;flex-direction:column;gap:8px}
+#app .chk h3{margin:0}
+#app .chk .acts{display:flex;gap:8px;flex-wrap:wrap}
 #app .groups{display:flex;gap:6px;border-bottom:1px solid var(--line)}
 #app .grp{background:transparent;color:var(--muted);border:0;border-bottom:3px solid transparent;border-radius:0;padding:10px 14px;font:700 14px Arial,Helvetica,sans-serif;cursor:pointer;margin-bottom:-1px}
 #app .grp b{font-weight:400;margin-left:4px}
@@ -392,9 +395,31 @@ function detail(p){
       '<label>Internal target date<input type="date" id="u-internal_target_date" value="'+esc(dec(p,"internal_target_date"))+'"></label>'+
       '<label>Notes<textarea id="u-user_notes">'+esc(dec(p,"user_notes"))+'</textarea></label>'+
       '<div class="acts"><button class="btn" type="submit">Save decision</button></div>'+
-      '<span class="note" id="savemsg">'+esc(savedNote(p))+'</span></form>'+
+      '<span class="note" id="savemsg">'+esc(savedNote(p))+'</span>'+chkBlock(p)+'</form>'+
   '</div></td></tr>';
 }
+/* Bid checklist: one Excel file per bid that anyone signed in can upload (replacing the old one) and download. */
+var CHK={};
+function chkBlock(p){var c=CHK[p.id],kb=c?Math.max(1,Math.round(c.size/1024)):0;
+  return '<div class="chk"><h3>Bid checklist</h3><div class="note" id="chkinfo">'+(c?esc(c.name)+" ("+kb+" KB), uploaded by "+esc(c.uploaded_by)+" on "+esc(String(c.uploaded_at).replace("T"," ").slice(0,16))+" UTC.":"No checklist uploaded yet. Excel files only (.xlsx or .xls, up to 4 MB).")+'</div>'+
+    '<div class="acts"><button class="btn ghost" type="button" id="chk-up">'+(c?"Replace bid checklist":"Upload bid checklist")+'</button>'+(c?'<button class="btn" type="button" id="chk-dl">Download checklist</button>':"")+
+    '<input type="file" id="chk-file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" hidden></div><span class="note" id="chkmsg"></span></div>'}
+function chkSay(t,bad){var m=$("chkmsg");if(m){m.style.color=bad?"#B3261E":"";m.textContent=t}}
+function pullChk(){if(!authKey())return Promise.resolve();return fetch("/api/checklist",{headers:{"X-Register-Key":authKey()},cache:"no-store"}).then(function(r){return r.ok?r.json():null}).catch(function(){return null}).then(function(j){
+  if(!j||!j.items||JSON.stringify(j.items)===JSON.stringify(CHK))return;CHK=j.items;var f=document.activeElement;if(started&&!(f&&f.closest&&f.closest("#ownform")))render()})}
+function chkUpload(file){var id=openId;if(!id||!file)return;
+  if(!/\.(xlsx|xls)$/i.test(file.name)){chkSay("Only Excel files (.xlsx or .xls) can be uploaded.",1);return}
+  if(file.size>4*1024*1024){chkSay("The file is larger than 4 MB.",1);return}
+  chkSay("Uploading…");
+  fetch("/api/checklist?id="+encodeURIComponent(id)+"&name="+encodeURIComponent(file.name),{method:"POST",headers:{"X-Register-Key":authKey(),"X-User":user,"Content-Type":"application/octet-stream"},body:file})
+    .then(function(r){return r.json().catch(function(){return {}}).then(function(j){return {ok:r.ok&&j&&j.ok,j:j}})}).catch(function(){return {ok:false,j:{error:"The server could not be reached."}}})
+    .then(function(r){if(r.ok){CHK=r.j.items;render()}if(openId===id)chkSay(r.ok?"Uploaded. Everyone who signs in can download it.":"Not uploaded: "+((r.j&&r.j.error)||"the server did not answer."),!r.ok)})}
+function chkDownload(){var id=openId,c=CHK[id];if(!c)return;chkSay("Preparing the download…");
+  fetch("/api/checklist?id="+encodeURIComponent(id),{headers:{"X-Register-Key":authKey()},cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.blob()}).then(function(b){
+    var u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download=c.name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},1000);chkSay("")})
+    .catch(function(){chkSay("The checklist could not be downloaded. Try again.",1)})}
+$("rows").addEventListener("click",function(e){var t=e.target;if(t.id==="chk-up"){$("chk-file").click()}else if(t.id==="chk-dl"){chkDownload()}});
+$("rows").addEventListener("change",function(e){if(e.target.id==="chk-file"){var f=e.target.files[0];e.target.value="";chkUpload(f)}});
 function savedNote(p){var d=decisions[p.id];return d&&d.updated_at?"Last saved by "+(d.updated_by||"someone")+" on "+String(d.updated_at).replace("T"," ").slice(0,16)+" UTC. Everyone who signs in sees this.":"Saving shares this with everyone who signs in."}
 function toggle(id){openId=openId===id?null:id;render()}
 $("sortsel").addEventListener("change",function(e){var v=e.target.value.split(":");sortKey=v[0];sortDir=+v[1];render()});
@@ -432,7 +457,7 @@ function start(){
   var run=(state.runs||[]).slice(-1)[0]||{};
   $("runinfo").textContent="Data updated as on "+STAMP+" · Signed in as "+user;
   kpis();render();
-  syncAll();setInterval(syncAll,45000);document.addEventListener("visibilitychange",function(){if(!document.hidden)syncAll()});
+  var tick=function(){syncAll();pullChk()};tick();setInterval(tick,45000);document.addEventListener("visibilitychange",function(){if(!document.hidden)tick()});
 }
 var origRender=render; render=function(){origRender();if(started)kpis()};
 /* ---------- tools ---------- */
