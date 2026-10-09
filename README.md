@@ -35,6 +35,8 @@ Needs a Vercel Blob store connected to the project. A rebuilt `index.html` is st
 - Files are kept in the Blob store under `checklists/`, with the list of uploads in `data/checklists.json`. Reading, uploading and downloading all need the register password; an `@citiesforum.org` address is needed to upload.
 - If the Blob store was created as public, the file addresses are public but unguessable (random suffix) and are never shown on the page; a private store is better.
 
+Bids with a checklist show a paperclip in the list. "View checklist" opens the workbook in a preview window (each sheet as a table, read in the browser with no outside library; `.xlsx` only, so `.xls` files are download-only), and "Download" saves the file.
+
 The site does not send any email.
 
 
