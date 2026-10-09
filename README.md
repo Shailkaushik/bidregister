@@ -21,6 +21,12 @@ curl -X POST https://<site>/api/bids -H 'Content-Type: application/json' \
 Needs a Vercel Blob store connected to the project. A rebuilt `index.html` is still a valid fallback.
 
 
-Bid decisions, owners and notes entered on the site are stored in each person's browser and are not written to this repository. The site does not send any email.
+## Shared decisions
+
+`api/decisions.js` keeps each bid's decision, owner, next action, target date and notes in the Blob store (`data/decisions.json`), so everyone who signs in sees the same ones.
+
+- `GET /api/decisions` (header `X-Register-Key: <password>`) returns all decisions. `POST /api/decisions` with `{password, user, items: {id: decision}}` saves them; the newest save per bid wins, and the save is retried if two people save at once.
+- The page loads decisions when it opens, then every 45 seconds and whenever the tab is focused again. The copy in the browser is only a cache. If the server cannot be reached, the decision is kept on that device and sent again automatically.
+- The site does not send any email.
 
 The email check only tests the address format; it does not prove who the visitor is. The password is what protects the data, and it is not stored in this repository.

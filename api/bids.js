@@ -9,20 +9,12 @@
 //
 // The password is checked against the salted hash in _auth.json. It is never stored.
 const crypto = require("crypto");
-const { put, get } = require("@vercel/blob");
-const AUTH = require("./_auth.json");
+const { AUTH, clean, okPassword, readBlob, writeBlob } = require("./_common");
 
 const PATH = "data/bids.json";
 const ITER = 600000;
 const b64 = (buf) => Buffer.from(buf).toString("base64");
-const clean = (v, n) => String(v == null ? "" : v).replace(/[\r\n]+/g, " ").trim().slice(0, n);
 
-function okPassword(pw) {
-  if (typeof pw !== "string" || !pw || pw.length > 200) return false;
-  const h = crypto.pbkdf2Sync(pw, Buffer.from(AUTH.salt, "base64"), AUTH.iter, 32, "sha256");
-  const want = Buffer.from(AUTH.hash, "base64");
-  return h.length === want.length && crypto.timingSafeEqual(h, want);
-}
 function gcm(key, iv, plain) {
   const c = crypto.createCipheriv("aes-256-gcm", key, iv);
   const ct = Buffer.concat([c.update(plain), c.final()]);
@@ -46,16 +38,8 @@ function stampOf(state) {
 const validEnvelope = (e) => e && typeof e === "object" && e.iter > 0 && typeof e.iv === "string" && typeof e.ct === "string" && Array.isArray(e.wraps) && e.wraps.length > 0 &&
   e.wraps.every((w) => w && typeof w.salt === "string" && typeof w.iv === "string" && typeof w.ct === "string");
 
-async function readStored() {
-  for (const access of ["private", "public"]) {
-    try { const r = await get(PATH, { access, useCache: false }); if (r && r.stream) return await new Response(r.stream).text(); } catch (e) {}
-  }
-  return null;
-}
-async function store(body) {
-  const opts = { addRandomSuffix: false, allowOverwrite: true, contentType: "application/json" };
-  try { return await put(PATH, body, { ...opts, access: "private" }); } catch (e) { return await put(PATH, body, { ...opts, access: "public" }); }
-}
+async function readStored() { const r = await readBlob(PATH); return r && r.text; }
+const store = (body) => writeBlob(PATH, body);
 
 module.exports = async (req, res) => {
   const out = (code, body) => { res.setHeader("Cache-Control", "no-store"); return res.status(code).json(body); };
