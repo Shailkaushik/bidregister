@@ -37,6 +37,8 @@ Needs a Vercel Blob store connected to the project. A rebuilt `index.html` is st
 
 Bids with a checklist show a paperclip in the list. "View checklist" opens the workbook in a preview window (each sheet as a table, read in the browser with no outside library; `.xlsx` only, so `.xls` files are download-only), and "Download" saves the file.
 
+The Shortlist column holds a Yes button per bid. Clicking it highlights the row for everyone (the same tint as hovering) and is stored with the bid's decision; clicking again removes it.
+
 The site does not send any email.
 
 
