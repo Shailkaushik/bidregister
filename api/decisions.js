@@ -15,7 +15,7 @@ function tidy(d, by, at) {
   const bid = OPTIONS.includes(d.bid_decision) ? d.bid_decision : "Unassigned";
   return { bid_decision: bid, internal_owner: clean(d.internal_owner, 120) || "Unassigned", next_action_internal: clean(d.next_action_internal, 300),
     internal_target_date: /^\d{4}-\d{2}-\d{2}$/.test(String(d.internal_target_date || "")) ? d.internal_target_date : "",
-    user_notes: String(d.user_notes || "").slice(0, 2000).trim(), updated_at: at, updated_by: by };
+    user_notes: String(d.user_notes || "").slice(0, 2000).trim(), shortlist: d.shortlist === "Yes" ? "Yes" : "", updated_at: at, updated_by: by };
 }
 async function load() {
   const r = await readBlob(PATH);
